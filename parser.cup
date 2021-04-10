@@ -21,16 +21,17 @@ scan with {: return s.next_token(); :};
  */
 
 /* Terminals (tokens returned by the scanner). */
-terminal            SEMI, PLUS, LPAREN, RPAREN, LBRACK, RBRACK, COMMA;
+terminal            PLUS, LPAREN, RPAREN, LBRACK, RBRACK, COMMA, IF, ELSE, PREFIX, SUFFIX;
 terminal String     STRING_LITERAL, IDENTIFIER;
 
 /*  Non terminals */
-non terminal            program;
-non terminal String    declaration, func_decl,func_body, func_call,func_call_def, func_call_expr ,arg,call_arg, call_arg_def, expression, stmt;      // used to store evaluated subexpressions
+non terminal           program;
+non terminal String    declaration, func_decl,func_body, func_call,func_call_def, if_def, func_call_expr ,arg,call_arg, call_arg_def, expression, stmt, if_stmt;      // used to store evaluated subexpressions
 
 /**
  *  Precedence Declarations
  */
+precedence right IF;
 precedence left PLUS, COMMA;
 // precedence right EXP;
 
@@ -53,45 +54,55 @@ declaration ::= declaration:rest func_decl:d          {: RESULT = String.format(
             ;
 
 func_decl ::= IDENTIFIER:name LPAREN arg:arg RPAREN LBRACK func_body:s RBRACK       {: RESULT = String.format("\tpublic static String %s(%s) {\n\t\treturn %s;\n\t}", name, arg, s); :}
-            | IDENTIFIER:name LPAREN RPAREN LBRACK func_body:s RBRACK                       {: RESULT = String.format("\tpublic static String %s() {\n\t\treturn %s;\n\t}", name, s); :}
+            | IDENTIFIER:name LPAREN RPAREN LBRACK func_body:s RBRACK               {: RESULT = String.format("\tpublic static String %s() {\n\t\treturn %s;\n\t}", name, s); :}
             ;
 
-arg ::= arg:a1 COMMA arg:a2               {: RESULT = String.format("%s, %s", a1, a2); :}
+arg ::= arg:a1 COMMA arg:a2           {: RESULT = String.format("%s, %s", a1, a2); :}
         | IDENTIFIER:id               {: RESULT = String.format("String %s", id); :}
         ;
 
-func_body ::= STRING_LITERAL:s             {: RESULT = String.format("\"%s\"", s); :} 
-            | IDENTIFIER:id                 {: RESULT = id; :}
-            | func_body:s1 PLUS func_body:s2 {: RESULT = String.format("%s + %s", s1, s2); :} 
-            | func_call:f             {: RESULT=f; :}
-            | func_call_def:f           {: RESULT=f; :}
+func_body ::= STRING_LITERAL:s                  {: RESULT = String.format("\"%s\"", s); :} 
+            | IDENTIFIER:id                     {: RESULT = id; :}
+            | func_body:s1 PLUS func_body:s2    {: RESULT = String.format("%s + %s", s1, s2); :} 
+            | func_call:f                       {: RESULT = f; :}
+            | func_call_def:f                   {: RESULT = f; :}
+            | if_def:i                          {: RESULT = String.format("(%s)", i); :}
             ;
             
 
-func_call ::= IDENTIFIER:name LPAREN RPAREN                      {: RESULT = String.format("%s()", name); :}
+func_call ::= IDENTIFIER:name LPAREN RPAREN                         {: RESULT = String.format("%s()", name); :}
             ;
 
-func_call_def ::= IDENTIFIER:name LPAREN call_arg_def:arg RPAREN          {: RESULT = String.format("%s(%s)", name, arg); :}
+func_call_def ::= IDENTIFIER:name LPAREN call_arg_def:arg RPAREN    {: RESULT = String.format("%s(%s)", name, arg); :}
                 ;
 
 
-call_arg_def ::= call_arg_def:s1 COMMA call_arg_def:s2                        {: RESULT = String.format("%s, %s", s1, s2); :}
-            | func_body:s                                                       {:   RESULT = s; :}
+call_arg_def ::= call_arg_def:s1 COMMA call_arg_def:s2                  {: RESULT = String.format("%s, %s", s1, s2); :}
+            | func_body:s                                               {: RESULT = s; :}
+            ;
+
+if_def ::= IF LPAREN func_body:prefix PREFIX func_body:s RPAREN func_body:then ELSE func_body:el         {: RESULT = String.format("(%s).startsWith(%s) ? %s:%s", s, prefix, then, el); :}
+            | IF LPAREN func_body:suffix SUFFIX func_body:s RPAREN func_body:then ELSE func_body:el      {: RESULT = String.format("(%s).endsWith(%s) ? %s:%s", s, suffix, then, el); :}
             ;
 
 func_call_expr ::= IDENTIFIER:name LPAREN call_arg:arg RPAREN          {: RESULT = String.format("%s(%s)", name, arg); :}
                 ;
 
-call_arg ::= call_arg:s1 COMMA call_arg:s2                        {: RESULT = String.format("%s, %s", s1, s2); :}
-            | stmt:s                              {:   RESULT = s; :}
+call_arg ::= call_arg:s1 COMMA call_arg:s2        {: RESULT = String.format("%s, %s", s1, s2); :}
+            | stmt:s                              {: RESULT = s; :}
             ;
 
 
 expression ::= stmt:s expression:rest    {: RESULT = String.format("\t\tSystem.out.println(%s);\n%s", s, rest); :}
-            |                                   {: RESULT = ""; :}
+            |                            {: RESULT = ""; :}
             ;
-stmt      ::= STRING_LITERAL:s             {: RESULT = String.format("\"%s\"", s); :}  
-            | stmt:s1 PLUS stmt:s2 {: RESULT = String.format("%s + %s", s1, s2); :} 
-            | func_call:f             {: RESULT=f; :}
-            | func_call_expr:fun         {: RESULT= fun;:}
+stmt      ::= STRING_LITERAL:s              {: RESULT = String.format("\"%s\"", s); :}  
+            | stmt:s1 PLUS stmt:s2          {: RESULT = String.format("%s + %s", s1, s2); :} 
+            | func_call:f                   {: RESULT = f; :}
+            | func_call_expr:fun            {: RESULT = fun;:}
+            | if_stmt:i                     {: RESULT = String.format("(%s)", i); :}
+            ;
+
+if_stmt ::= IF LPAREN stmt:prefix PREFIX stmt:s RPAREN stmt:then ELSE stmt:el          {: RESULT= String.format("(%s).startsWith(%s) ? %s:%s", s, prefix, then, el); :}
+            | IF LPAREN stmt:suffix SUFFIX stmt:s RPAREN stmt:then ELSE stmt:el        {: RESULT= String.format("(%s).endsWith(%s) ? %s:%s", s, suffix, then, el); :}
             ;
