@@ -26,7 +26,7 @@ terminal String     STRING_LITERAL, IDENTIFIER;
 
 /*  Non terminals */
 non terminal            program;
-non terminal String    declaration, func_decl,func_body, func_call, arg,call_arg, expression, stmt;      // used to store evaluated subexpressions
+non terminal String    declaration, func_decl,func_body, func_call,func_call_def, func_call_expr ,arg,call_arg, call_arg_def, expression, stmt;      // used to store evaluated subexpressions
 
 /**
  *  Precedence Declarations
@@ -64,22 +64,34 @@ func_body ::= STRING_LITERAL:s             {: RESULT = String.format("\"%s\"", s
             | IDENTIFIER:id                 {: RESULT = id; :}
             | func_body:s1 PLUS func_body:s2 {: RESULT = String.format("%s + %s", s1, s2); :} 
             | func_call:f             {: RESULT=f; :}
+            | func_call_def:f           {: RESULT=f; :}
+            ;
+            
+
+func_call ::= IDENTIFIER:name LPAREN RPAREN                      {: RESULT = String.format("%s()", name); :}
             ;
 
-func_call ::= IDENTIFIER:name LPAREN call_arg:arg RPAREN          {: RESULT = String.format("%s(%s)", name, arg); :}
-            | IDENTIFIER:name LPAREN RPAREN                      {: RESULT = String.format("%s()", name); :}
+func_call_def ::= IDENTIFIER:name LPAREN call_arg_def:arg RPAREN          {: RESULT = String.format("%s(%s)", name, arg); :}
+                ;
+
+
+call_arg_def ::= call_arg_def:s1 COMMA call_arg_def:s2                        {: RESULT = String.format("%s, %s", s1, s2); :}
+            | func_body:s                                                       {:   RESULT = s; :}
             ;
+
+func_call_expr ::= IDENTIFIER:name LPAREN call_arg:arg RPAREN          {: RESULT = String.format("%s(%s)", name, arg); :}
+                ;
+
 call_arg ::= call_arg:s1 COMMA call_arg:s2                        {: RESULT = String.format("%s, %s", s1, s2); :}
             | stmt:s                              {:   RESULT = s; :}
             ;
 
 
-
-
-expression ::= expression:rest stmt:s    {: RESULT = String.format("%s\t\tSystem.out.println(%s);\n", rest, s); :}
-            | stmt:s                              {: RESULT = String.format("\t\tSystem.out.println(%s);\n",s);; :}
+expression ::= stmt:s expression:rest    {: RESULT = String.format("\t\tSystem.out.println(%s);\n%s", s, rest); :}
+            |                                   {: RESULT = ""; :}
             ;
 stmt      ::= STRING_LITERAL:s             {: RESULT = String.format("\"%s\"", s); :}  
             | stmt:s1 PLUS stmt:s2 {: RESULT = String.format("%s + %s", s1, s2); :} 
             | func_call:f             {: RESULT=f; :}
+            | func_call_expr:fun         {: RESULT= fun;:}
             ;
