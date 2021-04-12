@@ -8,5 +8,9 @@ compile:
 execute:
 	@java -cp ./java-cup-11b-runtime.jar:. Driver
 
+main:
+	@javac Main.java
+	@java Main
+
 clean:
 	rm -f *.class *~ Main.java Parser.java Scanner.java sym.java

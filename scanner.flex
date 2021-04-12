@@ -59,10 +59,8 @@ LineTerminator = \r|\n|\r\n
 /* White space is a line terminator, space, tab, or line feed. */
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
-/* A literal integer is is a number beginning with a number between
-   one and nine followed by zero or more numbers between zero and nine
-   or just a zero.  */
-// dec_int_lit = 0 | [1-9][0-9]* 
+/* Legal Java identifiers.
+   Starting with a non numeric character and followed by alphanumeric characters.*/
 id = [a-zA-Z$_] [a-zA-Z0-9$_]*
 
 %state STRING
@@ -75,9 +73,6 @@ id = [a-zA-Z$_] [a-zA-Z0-9$_]*
 <YYINITIAL> "else"         { return symbol(sym.ELSE); }
 <YYINITIAL> "prefix"       { return symbol(sym.PREFIX); }
 <YYINITIAL> "suffix"       { return symbol(sym.SUFFIX); }
-
-// <YYINITIAL>  {id}           { return symbol(sym.IDENTIFIER); }
-
 
 <YYINITIAL> {
 /* operators */

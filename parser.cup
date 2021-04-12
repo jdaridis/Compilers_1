@@ -1,4 +1,3 @@
-/* Simple +/-/* expression language; parser evaluates constant expressions on the fly*/
 /**
  *  Package and Import Specifications
  */
@@ -33,7 +32,6 @@ non terminal String    declaration, func_decl,func_body, func_call,func_call_def
  */
 precedence right IF;
 precedence left PLUS, COMMA;
-// precedence right EXP;
 
 /**
  *  The Grammar Rules
